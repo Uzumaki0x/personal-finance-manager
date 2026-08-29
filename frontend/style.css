@@ -1,0 +1,33 @@
+* {
+    box-sizing: border-box;
+}
+:root {
+    --primary-color: #256eb;
+    --background-color: #0b81f8;
+    --text-color: #1f2937;
+}
+body {
+    font-family: Arial , sans-serif;
+    background-color: #f4f6f8;
+}
+.summary-card {
+    padding: 20px;
+    margin: 10px;
+    border : 5px solid #ccc ;
+    border-radius: 8px ;
+    flex: 1;
+}
+.summary-cards {
+    display: flex;
+    gap: 20px ;
+}
+.summary-card h4{
+    margin: 0 ;
+}
+.summary-card p{
+    margin: 10px ;
+}
+main {
+    max-width: 1920;
+    margin: 0 auto;
+}
