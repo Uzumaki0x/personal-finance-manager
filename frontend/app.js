@@ -1,10 +1,34 @@
 console.log("Radhe Radhe");
-function formatCurrency(amount){
-    return `₹${amount.toLocaleString("en-IN")}`
+function formatCurrency(amount,currency){
+    const amt = new Intl.NumberFormat("en-IN",{style:"currency",currency:currency});
+     return amt.format(amount);
 }
 function formatDate(dateString){
     const date = new Date(dateString);
     return date.toLocaleDateString("en-In",{day: "2-digit", month: "short" , year: "numeric"});
+}
+const baseCurrency = "INR" ;
+const exchangeRates =   { USD: 83,
+    EUR: 93,
+    GBP: 110,
+    INR: 1 
+};
+function convertCurrency(amount,fromCurrency,toCurrency){
+    if(exchangeRates[fromCurrency] === undefined || exchangeRates[toCurrency] === undefined ){
+        throw new Error("Currency is not available.This will be available soon.");
+    }
+    if(fromCurrency===toCurrency){
+        return amount ;
+    }
+    if(toCurrency==="INR"){
+        return amount*exchangeRates[fromCurrency];
+    }
+    if(fromCurrency==="INR"){
+        return amount/exchangeRates[toCurrency];
+    }
+        amount = amount*exchangeRates[fromCurrency] ;
+        amount = amount/exchangeRates[toCurrency];
+        return amount ;
 }
 const heading = document.querySelector("h1");
 heading.textContent = "My Finance Dashboard" ;
@@ -110,10 +134,10 @@ function renderTransaction(transaction){
     merchantElement.textContent = transaction.merchant ;
     categoryElement.textContent = transaction.category ;
     if(transaction.type==="income"){
-    amountElement.textContent =  `+${formatCurrency(transaction.amount)}` ;
+    amountElement.textContent =  `+${formatCurrency(transaction.amount,transaction.currency)}` ;
     }
     else{
-        amountElement.textContent = `-${formatCurrency(transaction.amount)}` ;
+        amountElement.textContent = `-${formatCurrency(transaction.amount,transaction.currency)}` ;
     }
     currencyElement.textContent = transaction.currency ;
     dateElement.textContent = formatDate(transaction.date);
@@ -134,13 +158,13 @@ for(const transaction of transactions){
 function updateSummary(transactions){
 const totalIncome = transactions.reduce((total,transaction)=>{
     if(transaction.type==="income"){
-    return total+transaction.amount;
+    return total+convertCurrency(transaction.amount,transaction.currency,baseCurrency);
 }
     return total;
 },0);
 const totalExpense = transactions.reduce((total,transaction)=>{
     if(transaction.type==="expense"){
-        return total+transaction.amount ;
+        return total+convertCurrency(transaction.amount,transaction.currency,baseCurrency);
     }
     return total; 
 },0)
@@ -149,8 +173,8 @@ const balance = cards[0].querySelector("p");
 const income = cards[1].querySelector("p");
 const expense = cards[2].querySelector("p");
 const totalBalance = totalIncome - totalExpense ;
-balance.textContent = formatCurrency(totalBalance) ;
-income.textContent = formatCurrency(totalIncome);
-expense.textContent = formatCurrency(totalExpense);
+balance.textContent = formatCurrency(totalBalance,"INR") ;
+income.textContent = formatCurrency(totalIncome,"INR");
+expense.textContent = formatCurrency(totalExpense,"INR");
 }
 updateSummary(transactions);
