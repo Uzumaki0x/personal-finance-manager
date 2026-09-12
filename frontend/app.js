@@ -39,6 +39,10 @@ let transactions = [
     category : "Shopping" ,
     amount : 5000 ,
     currency : "INR" ,
+    baseAmount : 5000 ,
+    baseCurrency : "INR" ,
+    exchangeRate : 1 ,
+    rateTimestamp: new Date().toISOString(),
     date : "29 AUG 2026" ,
     type : "expense",
     },
@@ -48,6 +52,10 @@ let transactions = [
     category : "Shopping" ,
     amount : 10000 ,
     currency : "INR" ,
+    baseAmount : 10000 ,
+    baseCurrency : "INR" ,
+    exchangeRate : 1 ,
+    rateTimestamp: new Date().toISOString(),
     date : "1 SEP 2026" ,
     type : "expense",
     },
@@ -57,6 +65,10 @@ let transactions = [
     category : "Grocery" ,
     amount : 50000 ,
     currency : "INR" ,
+    baseAmount : 50000 ,
+    baseCurrency : "INR" ,
+    exchangeRate : 1 ,
+    rateTimestamp: new Date().toISOString(),
     date : "13 SEP 2026" ,
     type : "income",
     }
@@ -88,12 +100,18 @@ form.addEventListener("submit",function(event){
     if(type !== "income" && type !== "expense"){
         return ;
     }
+    const exchangeRate = convertCurrency(1,currencyInput.value,baseCurrency);
+    const baseAmount = amount * exchangeRate ;
     const transaction = { 
     id : Date.now() ,
     merchant : merchantInput.value,
     category : categoryInput.value,
     amount : amount,
     currency : currencyInput.value,
+    baseAmount : baseAmount,
+    baseCurrency : baseCurrency,
+    exchangeRate : exchangeRate,
+    rateTimestamp : new Date().toISOString(),
     date : dateInput.value,
     type : type
 };
@@ -158,13 +176,13 @@ for(const transaction of transactions){
 function updateSummary(transactions){
 const totalIncome = transactions.reduce((total,transaction)=>{
     if(transaction.type==="income"){
-    return total+convertCurrency(transaction.amount,transaction.currency,baseCurrency);
+    return total+transaction.baseAmount;
 }
     return total;
 },0);
 const totalExpense = transactions.reduce((total,transaction)=>{
     if(transaction.type==="expense"){
-        return total+convertCurrency(transaction.amount,transaction.currency,baseCurrency);
+        return total+transaction.baseAmount;
     }
     return total; 
 },0)
@@ -173,8 +191,8 @@ const balance = cards[0].querySelector("p");
 const income = cards[1].querySelector("p");
 const expense = cards[2].querySelector("p");
 const totalBalance = totalIncome - totalExpense ;
-balance.textContent = formatCurrency(totalBalance,"INR") ;
-income.textContent = formatCurrency(totalIncome,"INR");
-expense.textContent = formatCurrency(totalExpense,"INR");
+balance.textContent = formatCurrency(totalBalance,baseCurrency) ;
+income.textContent = formatCurrency(totalIncome,baseCurrency);
+expense.textContent = formatCurrency(totalExpense,baseCurrency);
 }
 updateSummary(transactions);
