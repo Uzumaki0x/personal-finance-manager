@@ -196,3 +196,21 @@ income.textContent = formatCurrency(totalIncome,baseCurrency);
 expense.textContent = formatCurrency(totalExpense,baseCurrency);
 }
 updateSummary(transactions);
+fetch("http://localhost:3000/")
+    .then(response => response.text())
+    .then(data => {
+        console.log(data);
+    });
+fetch("http://localhost:3000/api/transactions",{
+    method : "POST" ,
+    headers : { "Content-type" : "application/json" } ,
+    body : JSON.stringify({
+        merchant : "amazon" ,
+        amount : 100 ,
+        category : "Shopping" ,
+        currency : "USD" , 
+        type : "expense" 
+    })
+})
+.then(response => response.json())
+.then(data => {console.log(data);})
