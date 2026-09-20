@@ -75,7 +75,7 @@ let transactions = [
 ]
 const transactionList = document.querySelector(".transaction-list");
 const form = document.querySelector("#transaction-form");
-form.addEventListener("submit",function(event){
+form.addEventListener("submit",async (event) => {
     event.preventDefault();
     const merchantInput = form.querySelector("#merchant");
     const categoryInput = form.querySelector("#category");
@@ -100,24 +100,28 @@ form.addEventListener("submit",function(event){
     if(type !== "income" && type !== "expense"){
         return ;
     }
-    const exchangeRate = convertCurrency(1,currencyInput.value,baseCurrency);
-    const baseAmount = amount * exchangeRate ;
-    const transaction = { 
-    id : Date.now() ,
+    const transactionData = { 
     merchant : merchantInput.value,
     category : categoryInput.value,
     amount : amount,
     currency : currencyInput.value,
-    baseAmount : baseAmount,
-    baseCurrency : baseCurrency,
-    exchangeRate : exchangeRate,
-    rateTimestamp : new Date().toISOString(),
     date : dateInput.value,
     type : type
 };
-
-transactions.push(transaction);
-renderTransaction(transaction);
+const response = await fetch("http://localhost:3000/api/transactions",{
+    method:"POST",
+    headers:{"content-type":"application/json"},
+    body:JSON.stringify(transactionData)
+});
+if(!response.ok){
+    const error = await response.json();
+    console.log(error);
+    return ;
+}
+const data = await response.json();
+console.log("Backend response:" , data);
+transactions.push(data.transaction);
+renderTransaction(data.transaction);
 updateSummary(transactions);
 form.reset();
 });
@@ -205,11 +209,12 @@ fetch("http://localhost:3000/api/transactions",{
     method : "POST" ,
     headers : { "Content-type" : "application/json" } ,
     body : JSON.stringify({
-        merchant : "amazon" ,
+        merchant : "radhe" ,
         amount : 100 ,
-        category : "Shopping" ,
+        category : "shopping" ,
         currency : "USD" , 
-        type : "expense" 
+        type : "expense" ,
+        date : "2026-09-20"
     })
 })
 .then(response => response.json())
