@@ -119,7 +119,6 @@ if(!response.ok){
     return ;
 }
 const data = await response.json();
-console.log("Backend response:" , data);
 transactions.push(data.transaction);
 renderTransaction(data.transaction);
 updateSummary(transactions);
@@ -190,6 +189,7 @@ const totalExpense = transactions.reduce((total,transaction)=>{
     }
     return total; 
 },0)
+
 const cards = document.querySelectorAll(".summary-card");
 const balance = cards[0].querySelector("p");
 const income = cards[1].querySelector("p");
@@ -205,17 +205,17 @@ fetch("http://localhost:3000/")
     .then(data => {
         console.log(data);
     });
-fetch("http://localhost:3000/api/transactions",{
-    method : "POST" ,
-    headers : { "Content-type" : "application/json" } ,
-    body : JSON.stringify({
-        merchant : "radhe" ,
-        amount : 100 ,
-        category : "shopping" ,
-        currency : "USD" , 
-        type : "expense" ,
-        date : "2026-09-20"
-    })
-})
-.then(response => response.json())
-.then(data => {console.log(data);})
+// fetch("http://localhost:3000/api/transactions",{
+//     method : "POST" ,
+//     headers : { "Content-type" : "application/json" } ,
+//     body : JSON.stringify({
+//         merchant : "radhe" ,
+//         amount : 100 ,
+//         category : "shopping" ,
+//         currency : "USD" , 
+//         type : "expense" ,
+//         date : "2026-09-20"
+//     })
+// })
+// .then(response => response.json())
+// .then(data => {console.log(data);})

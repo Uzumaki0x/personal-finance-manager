@@ -7,7 +7,7 @@ app.use(express.json());
 app.get("/" , (req,res) => {res.send("Radhe Radhe! From Finance Manager Backend!")});
 
 const exchangeRates = { USD : 83 , EUR : 93 , GBP : 110 , INR : 1 } ;
-
+function mapTransaction(row){return {id:Number(row.id),merchant:row.merchant,category:row.category,amount:Number(row.amount),currency:row.currency,baseAmount:Number(row.base_amount),baseCurrency:row.base_currency,exchangeRate:Number(row.exchange_rate),date:row.date,type:row.type,rateTimestamp:row.rate_timestamp};}
 app.post("/api/transactions",(req,res)=>{
     console.log(req.body);
 
@@ -43,8 +43,20 @@ app.post("/api/transactions",(req,res)=>{
     const exchangeRate = exchangeRates[req.body.currency] ;
     const baseAmount = exchangeRate*req.body.amount ;
     const transaction = {merchant:req.body.merchant ,category :req.body.category ,amount:req.body.amount , currency:req.body.currency , baseCurrency:"INR" , exchangeRate: exchangeRate , baseAmount : baseAmount , date:req.body.date , type:req.body.type ,rateTimestamp : new Date()} 
-    res.status(201).json({ message : "Transaction Received" ,transaction});
-    console.log("Transaction Created:",transaction);
+    const sql = `INSERT INTO transactions(merchant,category,amount,currency,base_currency,exchange_rate,base_amount,date,type,rate_timestamp)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *;`;
+    const values = [transaction.merchant,transaction.category,transaction.amount,transaction.currency,transaction.baseCurrency,transaction.exchangeRate,transaction.baseAmount,transaction.date,transaction.type,transaction.rateTimestamp];
+    pool.query(sql,values,(error,result)=>{
+        if(error)
+        {
+            console.error("Database Insert Failed:",error);
+            return res.status(500).json({message:"Failed to create transaction"});
+        }
+        const apitransaction = mapTransaction(result.rows[0]);
+        console.log("Database Row:",result.rows[0]);
+        console.log("API Transaction:",apitransaction);
+        res.status(201).json({message:"Transaction Created",transaction:apitransaction})
+});
 });
 
 app.listen(3000,()=>{console.log("Server is running on port 3000")});
