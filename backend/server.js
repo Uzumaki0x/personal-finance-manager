@@ -58,5 +58,15 @@ app.post("/api/transactions",(req,res)=>{
         res.status(201).json({message:"Transaction Created",transaction:apitransaction})
 });
 });
-
+app.get("/api/transactions", (req,res)=>{
+    const sql = `SELECT * FROM transactions ORDER BY date desc,id desc;` ;
+    pool.query(sql,(error,result)=>{
+        if(error){
+            console.error("Database Fetch Failed:" ,error);
+            return res.status(500).json({message:"Failed to fetch transactions"});
+        }
+        const transactions = result.rows.map(mapTransaction);
+        res.status(200).json({transactions:transactions});
+    });
+});
 app.listen(3000,()=>{console.log("Server is running on port 3000")});

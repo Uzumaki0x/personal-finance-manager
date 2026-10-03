@@ -32,47 +32,7 @@ function convertCurrency(amount,fromCurrency,toCurrency){
 }
 const heading = document.querySelector("h1");
 heading.textContent = "My Finance Dashboard" ;
-let transactions = [
-    {
-        id : 1,
-    merchant : "Amazon" ,
-    category : "Shopping" ,
-    amount : 5000 ,
-    currency : "INR" ,
-    baseAmount : 5000 ,
-    baseCurrency : "INR" ,
-    exchangeRate : 1 ,
-    rateTimestamp: new Date().toISOString(),
-    date : "29 AUG 2026" ,
-    type : "expense",
-    },
-    {
-        id : 2,
-    merchant : "Radhe" ,
-    category : "Shopping" ,
-    amount : 10000 ,
-    currency : "INR" ,
-    baseAmount : 10000 ,
-    baseCurrency : "INR" ,
-    exchangeRate : 1 ,
-    rateTimestamp: new Date().toISOString(),
-    date : "1 SEP 2026" ,
-    type : "expense",
-    },
-    { 
-        id : 3,
-    merchant : "Krishna" ,
-    category : "Grocery" ,
-    amount : 50000 ,
-    currency : "INR" ,
-    baseAmount : 50000 ,
-    baseCurrency : "INR" ,
-    exchangeRate : 1 ,
-    rateTimestamp: new Date().toISOString(),
-    date : "13 SEP 2026" ,
-    type : "income",
-    }
-]
+let transactions = [];
 const transactionList = document.querySelector(".transaction-list");
 const form = document.querySelector("#transaction-form");
 form.addEventListener("submit",async (event) => {
@@ -183,6 +143,21 @@ const totalIncome = transactions.reduce((total,transaction)=>{
 }
     return total;
 },0);
+async function loadTransactions(){
+    const response = await fetch("http://localhost:3000/api/transactions");
+    if(!response.ok){
+        console.error("Failed to log transactions");
+        return ;
+    }
+    const data = await response.json();
+    transactions = data.transactions;
+    transactionList.innerHTML = "";
+    for(const transaction of transactions){
+        renderTransaction(transaction);
+    } 
+    updateSummary(transactions);
+}
+loadTransactions();
 const totalExpense = transactions.reduce((total,transaction)=>{
     if(transaction.type==="expense"){
         return total+transaction.baseAmount;
