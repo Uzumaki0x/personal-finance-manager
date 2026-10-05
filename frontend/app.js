@@ -36,7 +36,9 @@ let transactions = [];
 const transactionList = document.querySelector(".transaction-list");
 const form = document.querySelector("#transaction-form");
 form.addEventListener("submit",async (event) => {
+    console.log("Submit event fired ");
     event.preventDefault();
+    console.log("Form valid:", form.checkValidity());
     const merchantInput = form.querySelector("#merchant");
     const categoryInput = form.querySelector("#category");
     const amountInput = form.querySelector("#amount");
@@ -47,19 +49,34 @@ form.addEventListener("submit",async (event) => {
         form.reportValidity();
         return ;
     }
+    console.log("Check valid")
     const amount = Number(amountInput.value);
     if(!Number.isFinite(amount)||amount<=0){
         return ;
     }
+    console.log("finite pass")
     const today = new Date();
-    const selectedDate = new Date(dateInput.value);
+    today.setHours(0,0,0,0);
+
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    const todayString = `${year}-${month}-${day}`;
+    const selectedDate = dateInput.value;
+
+console.log("Today:", todayString);
+console.log("Selected date:", selectedDate);
     if(selectedDate>today){
+        console.log("Future Date");
         return ;
     }
+    console.log("data pass");
     const type = typeInput.value ;
     if(type !== "income" && type !== "expense"){
         return ;
     }
+    console.log("type pass");
     const transactionData = { 
     merchant : merchantInput.value,
     category : categoryInput.value,
@@ -68,11 +85,13 @@ form.addEventListener("submit",async (event) => {
     date : dateInput.value,
     type : type
 };
+console.log("Submitting transaction:", transactionData);
 const response = await fetch("http://localhost:3000/api/transactions",{
     method:"POST",
     headers:{"content-type":"application/json"},
     body:JSON.stringify(transactionData)
 });
+console.log("POST response status:", response.status);
 if(!response.ok){
     const error = await response.json();
     console.log(error);
@@ -104,10 +123,20 @@ function renderTransaction(transaction){
     const dateElement = document.createElement("p");
     dateElement.classList.add("date");
     const deleteButton = document.createElement("button");
+    deleteButton.type = "button" ;
     deleteButton.textContent = "Delete" ;
     deleteButton.dataset.id = transaction.id ;
-    deleteButton.addEventListener("click",function(event){
+    deleteButton.addEventListener("click",async function(event){
+    console.log("button:",deleteButton);
+    console.log("id" , item);
     const id = Number(deleteButton.dataset.id);
+    console.log("Deleted Transaction id : " , id );
+    const response = await fetch(`http://localhost:3000/api/transactions/${id}`,{method:"DELETE"});
+    if(!response.ok){
+        const error = await response.json();
+        console.error("Delete Failed:",error);
+        return ;
+    }
     transactions = transactions.filter(transaction => transaction.id !== id);
     item.remove();
     updateSummary(transactions);
@@ -133,9 +162,6 @@ function renderTransaction(transaction){
     );
     transactionList.append(item);
 }
-for(const transaction of transactions){
-    renderTransaction(transaction);    
-}
 function updateSummary(transactions){
 const totalIncome = transactions.reduce((total,transaction)=>{
     if(transaction.type==="income"){
@@ -143,21 +169,6 @@ const totalIncome = transactions.reduce((total,transaction)=>{
 }
     return total;
 },0);
-async function loadTransactions(){
-    const response = await fetch("http://localhost:3000/api/transactions");
-    if(!response.ok){
-        console.error("Failed to log transactions");
-        return ;
-    }
-    const data = await response.json();
-    transactions = data.transactions;
-    transactionList.innerHTML = "";
-    for(const transaction of transactions){
-        renderTransaction(transaction);
-    } 
-    updateSummary(transactions);
-}
-loadTransactions();
 const totalExpense = transactions.reduce((total,transaction)=>{
     if(transaction.type==="expense"){
         return total+transaction.baseAmount;
@@ -175,6 +186,21 @@ income.textContent = formatCurrency(totalIncome,baseCurrency);
 expense.textContent = formatCurrency(totalExpense,baseCurrency);
 }
 updateSummary(transactions);
+async function loadTransactions(){
+    const response = await fetch("http://localhost:3000/api/transactions");
+    if(!response.ok){
+        console.error("Failed to load transactions");
+        return ;
+    }
+    const data = await response.json();
+    transactions = data.transactions;
+    transactionList.innerHTML = "";
+    for(const transaction of transactions){
+        renderTransaction(transaction);
+    } 
+    updateSummary(transactions);
+}
+loadTransactions();
 fetch("http://localhost:3000/")
     .then(response => response.text())
     .then(data => {

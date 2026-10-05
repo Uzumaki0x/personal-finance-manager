@@ -69,4 +69,22 @@ app.get("/api/transactions", (req,res)=>{
         res.status(200).json({transactions:transactions});
     });
 });
+app.delete("/api/transactions/:id",(req,res)=>{
+    const id = Number(req.params.id);
+    if(!Number.isInteger(id)||id<=0){
+        return res.status(400).json({message:"Invalid transaction ID"});
+    }
+    const sql = `DELETE FROM transactions WHERE id = $1 RETURNING *`;
+    pool.query(sql,[id],(error,result)=>{
+        
+        if(error){
+            console.error("Database Delete Failed:", error)
+            return res.status(500).json({message:"Failed to delete transaction"});
+        }
+        if(result.rows.length === 0){
+            return res.status(404).json({message:"Transaction not Found"});
+        }
+        res.status(200).json({message:"Transaction deleted",transaction:mapTransaction(result.rows[0])});
+    });
+});
 app.listen(3000,()=>{console.log("Server is running on port 3000")});
