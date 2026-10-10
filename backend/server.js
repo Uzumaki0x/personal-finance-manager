@@ -84,7 +84,94 @@ app.delete("/api/transactions/:id",(req,res)=>{
         if(result.rows.length === 0){
             return res.status(404).json({message:"Transaction not Found"});
         }
-        res.status(200).json({message:"Transaction deleted",transaction:mapTransaction(result.rows[0])});
+        return res.status(200).json({message:"Transaction deleted",transaction:mapTransaction(result.rows[0])});
     });
+});
+app.put("/api/transactions/:id",(req,res)=>{
+    const id = Number(req.params.id);
+    if(!Number.isInteger(id)||id<=0){
+        return res.status(400).json({message:"Invalid transaction ID"});
+    }
+    const { merchant , category , amount , currency , date , type } = req.body ;
+    if(typeof merchant !== "string" || merchant.trim().length < 2 || merchant.trim().length > 100 ){
+        return res.status(400).json({message:"Merchant must be between 2 and 100 characters "})
+    }
+    const allowedCategories = ["food", "shopping", "salary", "transport", "bills", "other"];
+    if(!allowedCategories.includes(category)){
+        return res.status(400).json({message:"Invalid Category"});
+    }
+    if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({message: "Amount must be a positive number"});
+    }
+    if(!Object.hasOwn(exchangeRates,currency)){
+        return res.status(400).json({message:"Unsupported Currency"});
+    }
+    if(type!=="income"&& type!=="expense"){
+        return res.status(400).json({message: "Type must be income or expense"});
+    }
+    if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return res.status(400).json({message: "Date must use YYYY-MM-DD format"});
+    }
+    const parsedDate = new Date(`${date}T00:00:00Z`);
+    if (Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) {
+        return res.status(400).json({message: "Invalid calendar date"});
+    }
+    const findsql = `Select * FROM transactions where id=$1` ;
+    pool.query(findsql,[id],(error,result)=>{
+        if(error){
+            console.error("Database Lookup Failed:",error);
+            return res.status(500).json({message:"Failed to find transaction"});
+        }
+        if(result.rows.length === 0){
+            return res.status(404).json({message: "Transaction not found"});
+        }
+        const existing=mapTransaction(result.rows[0]);
+        const financialDetailsChanged =  Number(existing.amount) !== amount || existing.currency !== currency ;
+        
+        let exchangeRate = existing.exchangeRate ;
+        let baseAmount = existing.baseAmount ;
+        let rateTimestamp = existing.rateTimestamp ;
+        if(financialDetailsChanged){
+            exchangeRate = exchangeRates[currency] ;
+            baseAmount = amount * exchangeRate ;
+            rateTimestamp = new Date() ;
+        }
+        const updatesql = `UPDATE transactions SET 
+            merchant = $1,
+            category = $2,
+            amount = $3,
+            currency = $4,
+            base_currency = $5,
+            exchange_rate = $6,
+            base_amount = $7,
+            date = $8,
+            type = $9,
+            rate_timestamp = $10
+            WHERE id = $11
+            RETURNING *` ;
+        const values = [
+            merchant.trim(),
+            category,
+            amount,
+            currency,
+            existing.baseCurrency,
+            exchangeRate,
+            baseAmount,
+            date,
+            type,
+            rateTimestamp,
+            id
+        ];
+        pool.query(updatesql,values,(updateError,updateResult)=>{
+            if(updateError){
+                console.error("Database Update Failed:" , updateError);
+                return res.status(500).json({message:"Failed to update transaction"});
+            }
+            if (updateResult.rows.length === 0) {
+                return res.status(404).json({message: "Transaction not found"});
+            }
+            return res.status(200).json({message:"Transaction Updated",transaction:mapTransaction(updateResult.rows[0])});
+        });
+        });
 });
 app.listen(3000,()=>{console.log("Server is running on port 3000")});
