@@ -25,7 +25,8 @@ app.post("/api/transactions",(req,res)=>{
     if(typeof req.body.merchant !== "string" || req.body.merchant.trim()  === "" || req.body.merchant.length > 100 ){
         return res.status(400).json({message:"Invalid merchant"});
     }
-    if( typeof req.body.category !== "string" || req.body.category.trim() === "" || req.body.category.length > 50 ){
+    const allowedCategories = ["food", "shopping", "salary", "transport", "bills", "other"];
+    if(typeof req.body.category !== "string" || !allowedCategories.includes(req.body.category)){
         return res.status(400).json({message:"Invalid category"});
     }
     if( typeof req.body.date !== "string" || req.body.date.trim() === "" ) {
@@ -35,10 +36,16 @@ app.post("/api/transactions",(req,res)=>{
     return res.status(400).json({ message: "Invalid date format" });
     }
     const input = req.body.date;
-    const [year , month , day] = input.split("-").map(Number);
-    const date = new Date(input);
-    if(date.getFullYear()!== year||date.getMonth()+1!==month||date.getDate()!==day){
-        return res.status(400).json({message:"Invalid date"});
+    const date = new Date(`${input}T00:00:00Z`);
+    if(Number.isNaN(date.getTime())||date.toISOString().slice(0,10)!==input){
+    return res.status(400).json({message:"Invalid date"});
+    }
+    const today = new Date();
+    const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    if (input > todayString) {
+        return res.status(400).json({
+            message: "Future dates are not allowed"
+        });
     }
     const exchangeRate = exchangeRates[req.body.currency] ;
     const baseAmount = exchangeRate*req.body.amount ;
@@ -112,10 +119,14 @@ app.put("/api/transactions/:id",(req,res)=>{
     if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         return res.status(400).json({message: "Date must use YYYY-MM-DD format"});
     }
+
     const parsedDate = new Date(`${date}T00:00:00Z`);
     if (Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) {
         return res.status(400).json({message: "Invalid calendar date"});
     }
+    const today = new Date();
+    const todayString = [today.getFullYear(),String(today.getMonth() + 1).padStart(2, "0"),String(today.getDate()).padStart(2, "0")].join("-");
+    if (date > todayString) {return res.status(400).json({message: "Future dates are not allowed"});}
     const findsql = `Select * FROM transactions where id=$1` ;
     pool.query(findsql,[id],(error,result)=>{
         if(error){
